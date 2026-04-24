@@ -22,13 +22,13 @@ public abstract class Item
 
 public class Weapon : Item
 {
-    public string WeaponType { get; set; }
+    public string AmmoType { get; set; }
     public double Damage { get; set; }
 
-    public Weapon(string name, string rarity, string weaponType, double damage)
+    public Weapon(string name, string rarity, string ammoType, double damage)
         : base(name, rarity)
     {
-        WeaponType = weaponType;
+        AmmoType = ammoType;
         Damage = damage;
     }
 

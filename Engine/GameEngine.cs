@@ -8,7 +8,6 @@ public class GameEngine
 {
     private Graph _graph = new();
     private ItemDatabase _itemDb = new();
-    private LootPool _lootPool = new();
     private Random _rng;
 
     public GameEngine()
@@ -65,64 +64,70 @@ public class GameEngine
     public void LoadItems(string csv)
     {
         _itemDb.LoadFromCSV(csv);
-        _lootPool.Initialize(_itemDb);
     }
 
     public SimulationResult RunSimulation(int runs)
     {
+        const int STEPS = 5;
         var rarityCounter = new Dictionary<string, long>();
         var weaponCounter = new Dictionary<string, long>();
         long totalLootRolls = 0;
-        int stepsPerRun = 0;
 
-        foreach (var rarity in _itemDb.GetRarities())
-            rarityCounter[rarity] = 0;
+        var nodesList = _graph.Nodes.Keys.ToList();
+        if (nodesList.Count == 0)
+            return new SimulationResult(runs, STEPS, 0, new(), new());
 
-        foreach (var wType in _itemDb.GetWeaponTypes())
-            weaponCounter[wType] = 0;
-
-        for (int i = 0; i < runs; i++)
+        var weaponTypeMap = new Dictionary<string, string>
         {
-            var (steps, rolls) = RunSingleGame();
-            stepsPerRun = steps;
-            totalLootRolls += rolls;
+            { "Medium", "AR" },
+            { "Shells", "Shotgun" },
+            { "Light", "SMG" },
+            { "Heavy", "Sniper" },
+            { "Rockets", "Sniper" }
+        };
 
-            // Simple approximation: distribute loot proportionally
-            for (int j = 0; j < rolls; j++)
+        // Initialize counters for all rarities and weapon types
+        foreach (var weapon in _itemDb.Items)
+        {
+            if (!rarityCounter.ContainsKey(weapon.Rarity))
+                rarityCounter[weapon.Rarity] = 0;
+            var weaponType = weaponTypeMap.GetValueOrDefault(weapon.AmmoType, weapon.AmmoType);
+            if (!weaponCounter.ContainsKey(weaponType))
+                weaponCounter[weaponType] = 0;
+        }
+
+        for (int run = 0; run < runs; run++)
+        {
+            // Pick random starting location
+            string currentLoc = nodesList[_rng.Next(nodesList.Count)];
+            var visitedChests = new HashSet<string>();
+
+            // Run STEPS iterations
+            for (int step = 0; step < STEPS; step++)
             {
-                var item = _lootPool.RollLoot(_rng);
-                rarityCounter.TryGetValue(item.Rarity, out var rc);
-                rarityCounter[item.Rarity] = rc + 1;
+                // Check if current location has a chest that hasn't been looted this run
+                if (!visitedChests.Contains(currentLoc))
+                {
+                    // Loot the chest
+                    var weapon = _itemDb.LootPool.RollLoot(_rng);
+                    rarityCounter[weapon.Rarity]++;
+                    var weaponType = weaponTypeMap.GetValueOrDefault(weapon.AmmoType, weapon.AmmoType);
+                    weaponCounter[weaponType]++;
+                    totalLootRolls++;
+                    visitedChests.Add(currentLoc);
+                }
 
-                weaponCounter.TryGetValue(item.WeaponType, out var wc);
-                weaponCounter[item.WeaponType] = wc + 1;
+                // Move to a random neighbor
+                var neighbors = _graph.GetNeighbors(currentLoc);
+                if (neighbors.Count > 0)
+                    currentLoc = neighbors[_rng.Next(neighbors.Count)];
             }
         }
 
         var rarityDist = ConvertDistribution(rarityCounter, totalLootRolls);
         var weaponDist = ConvertDistribution(weaponCounter, totalLootRolls);
 
-        return new SimulationResult(runs, stepsPerRun, totalLootRolls, rarityDist, weaponDist);
-    }
-
-    private (int Steps, long Rolls) RunSingleGame()
-    {
-        // Simulate a single game: pick a random start and end, traverse the path
-        var nodes = _graph.Nodes;
-        if (nodes.Count < 2)
-            return (0, 0);
-
-        var nodesList = nodes.Keys.ToList();
-        var start = nodesList[_rng.Next(nodesList.Count)];
-        var end = nodesList[_rng.Next(nodesList.Count)];
-
-        while (end == start)
-            end = nodesList[_rng.Next(nodesList.Count)];
-
-        var path = _graph.ShortestPath(start, end);
-        long rolls = (path.Count - 1) * 10; // Simplified: 10 loot drops per step
-
-        return (path.Count - 1, rolls);
+        return new SimulationResult(runs, STEPS, totalLootRolls, rarityDist, weaponDist);
     }
 
     public TraversalOutput RunPathfinding(string start, string end, string algorithm)

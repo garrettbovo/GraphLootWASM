@@ -6,13 +6,14 @@ using System.Linq;
 public class ItemDatabase
 {
     private List<Weapon> _items = new();
-    private Dictionary<string, int> _rarityCount = new();
-    private Dictionary<string, int> _weaponTypeCount = new();
+    private LootPool _lootPool = new();
 
     public List<Weapon> Items => _items;
+    public LootPool LootPool => _lootPool;
 
     public void LoadFromCSV(string csv)
     {
+        _items.Clear();
         var lines = csv.Split('\n');
         foreach (var line in lines)
         {
@@ -24,95 +25,78 @@ public class ItemDatabase
 
             var name = parts[0].Trim().Trim('"');
             var rarity = parts[1].Trim().Trim('"');
-            var weaponType = parts[2].Trim().Trim('"');
+            var ammoType = parts[2].Trim().Trim('"');
             if (double.TryParse(parts[3], out var damage))
             {
-                var weapon = new Weapon(name, rarity, weaponType, damage);
+                var weapon = new Weapon(name, rarity, ammoType, damage);
                 _items.Add(weapon);
-
-                _rarityCount.TryGetValue(rarity, out var rc);
-                _rarityCount[rarity] = rc + 1;
-
-                _weaponTypeCount.TryGetValue(weaponType, out var wc);
-                _weaponTypeCount[weaponType] = wc + 1;
             }
         }
+        _lootPool.Initialize(_items);
     }
-
-    public IEnumerable<string> GetRarities() => _rarityCount.Keys;
-    public IEnumerable<string> GetWeaponTypes() => _weaponTypeCount.Keys;
 }
 
 public class LootPool
 {
-    private List<Weapon> _lootTable = new();
-    private Dictionary<string, double> _rarityWeights = new();
-    private double _totalRarityWeight = 0;
+    private List<(Weapon Weapon, double Weight)> _weightedLootTable = new();
+    private double _totalWeight = 0;
 
-    public void Initialize(ItemDatabase db)
+    private static readonly Dictionary<string, double> RarityWeights = new()
     {
-        _lootTable = db.Items;
-        BuildRarityWeights();
-    }
+        { "Common", 40 },
+        { "Uncommon", 30 },
+        { "Rare", 15 },
+        { "Epic", 8 },
+        { "Legendary", 4 }
+    };
 
-    private void BuildRarityWeights()
+    private static readonly Dictionary<string, double> AmmoWeights = new()
     {
-        _rarityWeights.Clear();
-        var rarityMap = new Dictionary<string, int>();
+        { "Light", 1.1 },
+        { "Medium", 1.0 },
+        { "Heavy", 0.5 },
+        { "Shells", 0.9 },
+        { "Rockets", 0.3 }
+    };
 
-        foreach (var item in _lootTable)
-        {
-            rarityMap.TryGetValue(item.Rarity, out var count);
-            rarityMap[item.Rarity] = count + 1;
-        }
+    private const double Weapons = 100.0;
 
-        foreach (var kvp in rarityMap)
+    public void Initialize(List<Weapon> items)
+    {
+        _weightedLootTable.Clear();
+        _totalWeight = 0;
+
+        foreach (var weapon in items)
         {
-            // Weight by frequency: items with more entries in the table are more common
-            _rarityWeights[kvp.Key] = kvp.Value;
-            _totalRarityWeight += kvp.Value;
+            double rarityWeight = RarityWeights.GetValueOrDefault(weapon.Rarity, 1);
+            double ammoWeight = AmmoWeights.GetValueOrDefault(weapon.AmmoType, 1.0);
+            double categoryWeight = Weapons * ammoWeight;
+            double finalWeight = rarityWeight * categoryWeight;
+
+            _weightedLootTable.Add((weapon, finalWeight));
+            _totalWeight += finalWeight;
         }
     }
 
     public Weapon RollLoot(Random rng)
     {
-        if (_lootTable.Count == 0)
-            return new Weapon("Empty", "Common", "AR", 0);
+        if (_weightedLootTable.Count == 0)
+            return new Weapon("Empty", "Common", "Medium", 0);
 
-        var idx = rng.Next(_lootTable.Count);
-        return _lootTable[idx];
-    }
-
-    public Dictionary<string, (double Percentage, long Count)> GetRarityDistribution(long totalRolls)
-    {
-        var dist = new Dictionary<string, (double, long)>();
-        foreach (var rarity in _rarityWeights.Keys)
+        double roll;
+        do
         {
-            var weight = _rarityWeights[rarity];
-            var pct = (weight / _totalRarityWeight) * 100;
-            var count = (long)(totalRolls * weight / _totalRarityWeight);
-            dist[rarity] = (pct, count);
-        }
-        return dist;
-    }
+            roll = rng.NextDouble() * _totalWeight;
+        } while (roll == 0.0);
 
-    public Dictionary<string, (double Percentage, long Count)> GetWeaponDistribution(long totalRolls)
-    {
-        var weaponMap = new Dictionary<string, int>();
-        foreach (var item in _lootTable)
+        double cumulative = 0;
+        foreach (var (weapon, weight) in _weightedLootTable)
         {
-            weaponMap.TryGetValue(item.WeaponType, out var count);
-            weaponMap[item.WeaponType] = count + 1;
+            cumulative += weight;
+            if (roll <= cumulative)
+                return weapon;
         }
 
-        var dist = new Dictionary<string, (double, long)>();
-        long total = weaponMap.Values.Sum();
-        foreach (var kvp in weaponMap)
-        {
-            var pct = (kvp.Value / (double)total) * 100;
-            var count = (long)(totalRolls * kvp.Value / (double)total);
-            dist[kvp.Key] = (pct, count);
-        }
-        return dist;
+        return _weightedLootTable[_weightedLootTable.Count - 1].Weapon;
     }
 }

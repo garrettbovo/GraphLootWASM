@@ -1,9 +1,37 @@
-Name,Rarity,WeaponType,Damage
-"AR-15",Common,AR,32.5
-"M4",Rare,AR,35.0
-"Shotgun-12",Uncommon,Shotgun,68.0
-"Combat-SG",Rare,Shotgun,75.0
-"SMG-9mm",Common,SMG,22.0
-"Suppressed-SMG",Uncommon,SMG,24.0
-"Heavy-Sniper",Epic,Heavy,80.0
-"Rocket",Legendary,Heavy,120.0
+Name,Rarity,AmmoType,Damage
+"Assault Rifle",Common,Medium,30
+"Assault Rifle",Uncommon,Medium,31
+"Assault Rifle",Rare,Medium,33
+"Assault Rifle",Epic,Medium,35
+"Assault Rifle",Legendary,Medium,36
+"Burst AR",Uncommon,Medium,27
+"Burst AR",Rare,Medium,29
+"Burst AR",Legendary,Medium,31
+"Tactical Shotgun",Common,Shells,75
+"Tactical Shotgun",Uncommon,Shells,80
+"Tactical Shotgun",Rare,Shells,85
+"Tactical Shotgun",Epic,Shells,90
+"Tactical Shotgun",Legendary,Shells,95
+"Combat Shotgun",Rare,Shells,85
+"Combat Shotgun",Epic,Shells,90
+"Combat Shotgun",Legendary,Shells,95
+"SMG",Common,Light,17
+"SMG",Uncommon,Light,18
+"SMG",Rare,Light,19
+"SMG",Epic,Light,20
+"SMG",Legendary,Light,21
+"Suppressed SMG",Rare,Light,18
+"Suppressed SMG",Epic,Light,20
+"DMR",Rare,Medium,45
+"DMR",Epic,Medium,48
+"DMR",Legendary,Medium,50
+"Bolt-Action Sniper",Rare,Heavy,105
+"Bolt-Action Sniper",Epic,Heavy,110
+"Bolt-Action Sniper",Legendary,Heavy,116
+"Heavy Sniper",Epic,Heavy,120
+"Heavy Sniper",Legendary,Heavy,132
+"Rocket Launcher",Epic,Rockets,120
+"Rocket Launcher",Legendary,Rockets,130
+"Hand Cannon",Rare,Heavy,75
+"Hand Cannon",Epic,Heavy,80
+"Hand Cannon",Legendary,Heavy,85

@@ -47,6 +47,13 @@ public class Graph
         return result.Path;
     }
 
+    public List<string> GetNeighbors(string node)
+    {
+        if (_adjList.TryGetValue(node, out var edges))
+            return edges.Select(e => e.To).ToList();
+        return new List<string>();
+    }
+
     public PathResult RunDijkstra(string start, string end)
     {
         if (!_adjList.ContainsKey(start) || !_adjList.ContainsKey(end))
