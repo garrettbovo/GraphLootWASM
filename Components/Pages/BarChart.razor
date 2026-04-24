@@ -1,0 +1,26 @@
+@if (Data is null || Data.Count == 0)
+{
+    <div class="empty-chart">No data.</div>
+}
+else
+{
+    <div class="bar-chart">
+        @foreach (var kvp in Data.OrderByDescending(x => x.Value.Percentage))
+        {
+            var pct = kvp.Value.Percentage;
+            <div class="bar-row">
+                <div class="bar-label">@kvp.Key</div>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width: @(pct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></div>
+                </div>
+                <div class="bar-value">
+                    @pct.ToString("0.00")% <span class="muted">(@kvp.Value.Count.ToString("N0"))</span>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Dictionary<string, (double Percentage, long Count)>? Data { get; set; }
+}

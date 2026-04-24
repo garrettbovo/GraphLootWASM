@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GraphLoot Engine - WASM</title>
+    <base href="/" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+</head>
+
+<body>
+    <div id="app">
+        <div style="display:flex; justify-content:center; align-items:center; height:100vh; background:#0e1116; color:#e6edf3; font-family: system-ui;">
+            <div style="text-align:center;">
+                <p>Loading GraphLoot Engine...</p>
+                <p style="font-size:0.85rem; color:#8b949e;">If this takes more than a few seconds, check the browser console for errors.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        <environment include="Greeting">
+            <p>An error has occurred. <a href="">Reload</a></p>
+        </environment>
+        <environment exclude="Greeting">
+            <p>An unhandled exception has occurred. See browser console for details.</p>
+        </environment>
+        <a href="" class="dismiss" style="position:absolute; top:10px; right:10px; cursor:pointer;">✕</a>
+    </div>
+
+    <script src="_framework/blazor.webassembly.js"></script>
+</body>
+
+</html>

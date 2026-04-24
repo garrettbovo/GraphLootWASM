@@ -1,0 +1,9 @@
+Name,Rarity,WeaponType,Damage
+"AR-15",Common,AR,32.5
+"M4",Rare,AR,35.0
+"Shotgun-12",Uncommon,Shotgun,68.0
+"Combat-SG",Rare,Shotgun,75.0
+"SMG-9mm",Common,SMG,22.0
+"Suppressed-SMG",Uncommon,SMG,24.0
+"Heavy-Sniper",Epic,Heavy,80.0
+"Rocket",Legendary,Heavy,120.0

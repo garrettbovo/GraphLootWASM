@@ -1,0 +1,25 @@
+From,To,Weight
+Lonely Labs,Haunted Hills,16.0
+Lonely Labs,Pleasant Park,24.0
+Lonely Labs,Mega City,23.0
+Haunted Hills,Pleasant Park,11.0
+Haunted Hills,Mega City,18.0
+Mega City,Frenzy Fields,22.0
+Mega City,Pleasant Park,15.0
+Mega City,Tilted Towers,28.0
+Frenzy Fields,Dusty Depot,25.0
+Frenzy Fields,Wailing Woods,32.0
+Pleasant Park,Tilted Towers,22.0
+Pleasant Park,Greasy Grove,33.0
+Tilted Towers,Salty Springs,18.0
+Tilted Towers,Dusty Depot,21.0
+Tilted Towers,Retail Row,30.0
+Dusty Depot,Wailing Woods,26.0
+Dusty Depot,Retail Row,20.0
+Retail Row,Wailing Woods,31.0
+Retail Row,Tomato Temple,29.0
+Salty Springs,Greasy Grove,28.0
+Salty Springs,Tomato Temple,31.0
+Greasy Grove,Flush Factory,20.0
+Flush Factory,Salty Springs,30.0
+Wailing Woods,Tomato Temple,31.0
