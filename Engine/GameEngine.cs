@@ -2,18 +2,12 @@ namespace GraphLootWASM.Engine;
 
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 public class GameEngine
 {
     private Graph _graph = new();
     private ItemDatabase _itemDb = new();
-    private Random _rng;
-
-    public GameEngine()
-    {
-        _rng = new Random();
-    }
+    private Random _rng = new();
 
     public Graph GetGraph() => _graph;
 
@@ -25,8 +19,7 @@ public class GameEngine
 
     private void LoadNodes(string csv)
     {
-        var lines = csv.Split('\n');
-        foreach (var line in lines)
+        foreach (var line in csv.Split('\n'))
         {
             var trimmed = line.Trim();
             if (trimmed.Length == 0) continue;
@@ -35,15 +28,17 @@ public class GameEngine
             if (parts.Length < 3) continue;
 
             var name = parts[0].Trim().Trim('"');
-            if (double.TryParse(parts[1], out var x) && double.TryParse(parts[2], out var y))
+            if (double.TryParse(parts[1], System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var x) &&
+                double.TryParse(parts[2], System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var y))
                 _graph.AddNode(name, x, y);
         }
     }
 
     private void LoadEdges(string csv)
     {
-        var lines = csv.Split('\n');
-        foreach (var line in lines)
+        foreach (var line in csv.Split('\n'))
         {
             var trimmed = line.Trim();
             if (trimmed.Length == 0) continue;
@@ -52,8 +47,9 @@ public class GameEngine
             if (parts.Length < 3) continue;
 
             var from = parts[0].Trim().Trim('"');
-            var to = parts[1].Trim().Trim('"');
-            if (double.TryParse(parts[2], out var weight))
+            var to   = parts[1].Trim().Trim('"');
+            if (double.TryParse(parts[2], System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var weight))
             {
                 _graph.AddEdge(from, to, weight);
                 _graph.AddEdge(to, from, weight);
@@ -61,83 +57,65 @@ public class GameEngine
         }
     }
 
-    public void LoadItems(string csv)
-    {
-        _itemDb.LoadFromCSV(csv);
-    }
+    public void LoadItems(string csv) => _itemDb.LoadFromCSV(csv);
 
     public SimulationResult RunSimulation(int runs)
     {
-        const int STEPS = 5;
         var rarityCounter = new Dictionary<string, long>();
         var weaponCounter = new Dictionary<string, long>();
         long totalLootRolls = 0;
+        int stepsPerRun = 0;
 
-        var nodesList = _graph.Nodes.Keys.ToList();
-        if (nodesList.Count == 0)
-            return new SimulationResult(runs, STEPS, 0, new(), new());
+        foreach (var r in _itemDb.GetRarities())   rarityCounter[r] = 0;
+        foreach (var c in _itemDb.GetWeaponCategories()) weaponCounter[c] = 0;
 
-        var weaponTypeMap = new Dictionary<string, string>
+        for (int i = 0; i < runs; i++)
         {
-            { "Medium", "AR" },
-            { "Shells", "Shotgun" },
-            { "Light", "SMG" },
-            { "Heavy", "Sniper" },
-            { "Rockets", "Sniper" }
-        };
+            var (steps, rolls) = RunSingleGame();
+            stepsPerRun = steps;
+            totalLootRolls += rolls;
 
-        // Initialize counters for all rarities and weapon types
-        foreach (var weapon in _itemDb.Items)
-        {
-            if (!rarityCounter.ContainsKey(weapon.Rarity))
-                rarityCounter[weapon.Rarity] = 0;
-            var weaponType = weaponTypeMap.GetValueOrDefault(weapon.AmmoType, weapon.AmmoType);
-            if (!weaponCounter.ContainsKey(weaponType))
-                weaponCounter[weaponType] = 0;
-        }
-
-        for (int run = 0; run < runs; run++)
-        {
-            // Pick random starting location
-            string currentLoc = nodesList[_rng.Next(nodesList.Count)];
-            var visitedChests = new HashSet<string>();
-
-            // Run STEPS iterations
-            for (int step = 0; step < STEPS; step++)
+            for (int j = 0; j < rolls; j++)
             {
-                // Check if current location has a chest that hasn't been looted this run
-                if (!visitedChests.Contains(currentLoc))
-                {
-                    // Loot the chest
-                    var weapon = _itemDb.LootPool.RollLoot(_rng);
-                    rarityCounter[weapon.Rarity]++;
-                    var weaponType = weaponTypeMap.GetValueOrDefault(weapon.AmmoType, weapon.AmmoType);
-                    weaponCounter[weaponType]++;
-                    totalLootRolls++;
-                    visitedChests.Add(currentLoc);
-                }
+                var item = _itemDb.RollWeapon(_rng);
+                if (item == null) continue;
 
-                // Move to a random neighbor
-                var neighbors = _graph.GetNeighbors(currentLoc);
-                if (neighbors.Count > 0)
-                    currentLoc = neighbors[_rng.Next(neighbors.Count)];
+                if (rarityCounter.ContainsKey(item.Rarity))
+                    rarityCounter[item.Rarity]++;
+
+                var cat = ItemDatabase.GetWeaponCategory(item.WeaponType);
+                if (cat != null && weaponCounter.ContainsKey(cat))
+                    weaponCounter[cat]++;
             }
         }
 
-        var rarityDist = ConvertDistribution(rarityCounter, totalLootRolls);
-        var weaponDist = ConvertDistribution(weaponCounter, totalLootRolls);
+        return new SimulationResult(
+            runs, stepsPerRun, totalLootRolls,
+            ConvertDistribution(rarityCounter, totalLootRolls),
+            ConvertDistribution(weaponCounter, totalLootRolls));
+    }
 
-        return new SimulationResult(runs, STEPS, totalLootRolls, rarityDist, weaponDist);
+    private (int Steps, long Rolls) RunSingleGame()
+    {
+        var nodes = _graph.Nodes;
+        if (nodes.Count < 2) return (0, 0);
+
+        var keys  = nodes.Keys.ToList();
+        var start = keys[_rng.Next(keys.Count)];
+        var end   = keys[_rng.Next(keys.Count)];
+        while (end == start)
+            end = keys[_rng.Next(keys.Count)];
+
+        var path = _graph.ShortestPath(start, end);
+        var steps = path.Count - 1;
+        return (steps, steps); // 1 weapon roll per step
     }
 
     public TraversalOutput RunPathfinding(string start, string end, string algorithm)
     {
-        List<string> path;
-
-        if (algorithm == "astar")
-            path = _graph.AStar(start, end);
-        else
-            path = _graph.ShortestPath(start, end);
+        var path = algorithm == "astar"
+            ? _graph.AStar(start, end)
+            : _graph.ShortestPath(start, end);
 
         var steps = new List<(string From, string To)>();
         for (int i = 0; i < path.Count - 1; i++)
@@ -146,13 +124,14 @@ public class GameEngine
         return new TraversalOutput(path, steps);
     }
 
-    private Dictionary<string, (double Percentage, long Count)> ConvertDistribution(
+    private static Dictionary<string, (double Percentage, long Count)> ConvertDistribution(
         Dictionary<string, long> counter, long total)
     {
         var dist = new Dictionary<string, (double, long)>();
+        var counted = counter.Values.Sum();
         foreach (var kvp in counter)
         {
-            var pct = total > 0 ? (kvp.Value / (double)total) * 100 : 0;
+            var pct = counted > 0 ? kvp.Value / (double)counted * 100 : 0;
             dist[kvp.Key] = (pct, kvp.Value);
         }
         return dist;

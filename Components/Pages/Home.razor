@@ -35,22 +35,22 @@
                     </filter>
                 </defs>
 
-                @{
-                    var edges = GetUniqueEdges();
-                }
-
-                @* Non-path edges *@
-                @foreach (var e in edges.Where(e => !e.IsOnPath))
+                @* All edges (gray) *@
+                @foreach (var e in GetUniqueEdges())
                 {
                     <line x1="@F(e.A.X)" y1="@F(e.A.Y)" x2="@F(e.B.X)" y2="@F(e.B.Y)" class="edge" stroke-width="1.5" />
                     <g><text x="@F((e.A.X + e.B.X) / 2)" y="@F((e.A.Y + e.B.Y) / 2 - 5)" class="edge-label">@e.Weight.ToString("0.#")</text></g>
                 }
 
-                @* Path edges rendered on top with glow *@
-                @foreach (var e in edges.Where(e => e.IsOnPath))
+                @* Path polyline drawn directly from ordered node positions *@
+                @if (_traversal?.Path.Count > 1)
                 {
-                    <line x1="@F(e.A.X)" y1="@F(e.A.Y)" x2="@F(e.B.X)" y2="@F(e.B.Y)"
-                          class="edge edge-path" stroke-width="4" filter="url(#edge-glow)" />
+                    var pts = string.Join(" ", _traversal.Path
+                        .Select(n => _nodeByName.TryGetValue(n, out var nd) ? $"{F(nd.X)},{F(nd.Y)}" : null)
+                        .Where(p => p != null));
+                    <polyline points="@pts" fill="none" stroke="var(--path)" stroke-width="4"
+                              stroke-linecap="round" stroke-linejoin="round"
+                              filter="url(#edge-glow)" />
                 }
 
                 @* Nodes *@
@@ -171,7 +171,6 @@
     private SimulationResult? _simulation;
 
     private HashSet<string> _pathNodeSet = new();
-    private HashSet<string> _pathEdgeSet = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -203,7 +202,6 @@
         _start = name;
         _end = null;
         _pathNodeSet.Clear();
-        _pathEdgeSet.Clear();
         _traversal = null;
     }
 
@@ -215,7 +213,6 @@
         _simulation = null;
         _error = null;
         _pathNodeSet.Clear();
-        _pathEdgeSet.Clear();
     }
 
     private async Task RunPathfindingAsync()
@@ -226,7 +223,6 @@
         _simulation = null;
         _traversal = null;
         _pathNodeSet.Clear();
-        _pathEdgeSet.Clear();
 
         try
         {
@@ -250,7 +246,6 @@
         _traversal = null;
         _simulation = null;
         _pathNodeSet.Clear();
-        _pathEdgeSet.Clear();
 
         try
         {
@@ -269,16 +264,11 @@
     private void HighlightPath(List<string> path)
     {
         _pathNodeSet = new HashSet<string>(path);
-        _pathEdgeSet = new HashSet<string>();
-        for (int i = 0; i < path.Count - 1; i++)
-            _pathEdgeSet.Add(EdgeKey(path[i], path[i + 1]));
     }
 
-    private static string EdgeKey(string a, string b) => $"{a}|{b}";
-
-    private List<(NodeData A, NodeData B, double Weight, bool IsOnPath)> GetUniqueEdges()
+    private List<(NodeData A, NodeData B, double Weight)> GetUniqueEdges()
     {
-        var result = new List<(NodeData, NodeData, double, bool)>();
+        var result = new List<(NodeData, NodeData, double)>();
         var drawn = new HashSet<string>();
         foreach (var kvp in _graph!.AdjList)
         {
@@ -290,9 +280,7 @@
                 var a = _nodeByName.GetValueOrDefault(kvp.Key);
                 var b = _nodeByName.GetValueOrDefault(edge.To);
                 if (a is null || b is null) continue;
-                var isOnPath = _pathEdgeSet.Contains(EdgeKey(kvp.Key, edge.To))
-                            || _pathEdgeSet.Contains(EdgeKey(edge.To, kvp.Key));
-                result.Add((a, b, edge.Weight, isOnPath));
+                result.Add((a, b, edge.Weight));
             }
         }
         return result;

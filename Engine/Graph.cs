@@ -7,6 +7,7 @@ public class Graph
 {
     private Dictionary<string, List<Edge>> _adjList = new();
     private Dictionary<string, NodeData> _nodes = new();
+    private double _heuristicScale = 0;
 
     public IReadOnlyDictionary<string, List<Edge>> AdjList => _adjList;
     public IReadOnlyDictionary<string, NodeData> Nodes => _nodes;
@@ -32,7 +33,21 @@ public class Graph
         AddVertex(to);
 
         if (!_adjList[from].Any(e => e.To == to))
+        {
             _adjList[from].Add(new Edge(to, weight));
+            // Keep min(weight / pixel_dist) so the heuristic stays admissible
+            if (_nodes.TryGetValue(from, out var nf) && _nodes.TryGetValue(to, out var nt))
+            {
+                var dx = nf.X - nt.X;
+                var dy = nf.Y - nt.Y;
+                var d = Math.Sqrt(dx * dx + dy * dy);
+                if (d > 0)
+                {
+                    var ratio = weight / d;
+                    _heuristicScale = _heuristicScale == 0 ? ratio : Math.Min(_heuristicScale, ratio);
+                }
+            }
+        }
     }
 
     public List<string> ShortestPath(string start, string end)
@@ -121,7 +136,10 @@ public class Graph
 
         while (pq.Count > 0)
         {
-            var (current, _) = pq.Dequeue();
+            var (current, currentF) = pq.Dequeue();
+
+            if (currentF > fScore[current])
+                continue;
 
             if (current == end)
                 break;
@@ -152,7 +170,7 @@ public class Graph
         var n2 = _nodes[to];
         var dx = n1.X - n2.X;
         var dy = n1.Y - n2.Y;
-        return Math.Sqrt(dx * dx + dy * dy);
+        return Math.Sqrt(dx * dx + dy * dy) * _heuristicScale;
     }
 
     private List<string> ReconstructPath(string start, string end, Dictionary<string, string?> predecessors)

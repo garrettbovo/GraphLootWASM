@@ -1,37 +1,58 @@
-Name,Rarity,AmmoType,Damage
-"Assault Rifle",Common,Medium,30
-"Assault Rifle",Uncommon,Medium,31
-"Assault Rifle",Rare,Medium,33
-"Assault Rifle",Epic,Medium,35
-"Assault Rifle",Legendary,Medium,36
-"Burst AR",Uncommon,Medium,27
-"Burst AR",Rare,Medium,29
-"Burst AR",Legendary,Medium,31
-"Tactical Shotgun",Common,Shells,75
-"Tactical Shotgun",Uncommon,Shells,80
-"Tactical Shotgun",Rare,Shells,85
-"Tactical Shotgun",Epic,Shells,90
-"Tactical Shotgun",Legendary,Shells,95
-"Combat Shotgun",Rare,Shells,85
-"Combat Shotgun",Epic,Shells,90
-"Combat Shotgun",Legendary,Shells,95
-"SMG",Common,Light,17
-"SMG",Uncommon,Light,18
-"SMG",Rare,Light,19
-"SMG",Epic,Light,20
-"SMG",Legendary,Light,21
-"Suppressed SMG",Rare,Light,18
-"Suppressed SMG",Epic,Light,20
-"DMR",Rare,Medium,45
-"DMR",Epic,Medium,48
-"DMR",Legendary,Medium,50
-"Bolt-Action Sniper",Rare,Heavy,105
-"Bolt-Action Sniper",Epic,Heavy,110
-"Bolt-Action Sniper",Legendary,Heavy,116
-"Heavy Sniper",Epic,Heavy,120
-"Heavy Sniper",Legendary,Heavy,132
-"Rocket Launcher",Epic,Rockets,120
-"Rocket Launcher",Legendary,Rockets,130
-"Hand Cannon",Rare,Heavy,75
-"Hand Cannon",Epic,Heavy,80
-"Hand Cannon",Legendary,Heavy,85
+ID,Name,Type,Rarity,Description,AmmoType,Damage,FireRate,MagazineSize,ReloadTime
+1,Assault Rifle,Weapon,Common,Standard assault rifle,Medium,30,5.5,30,2.2
+2,Assault Rifle,Weapon,Uncommon,Improved assault rifle,Medium,31,5.5,30,2.1
+3,Assault Rifle,Weapon,Rare,High-quality assault rifle,Medium,33,5.5,30,2.0
+4,Assault Rifle,Weapon,Epic,Elite assault rifle,Medium,35,5.5,30,1.9
+5,Assault Rifle,Weapon,Legendary,Top-tier assault rifle,Medium,36,5.5,30,1.8
+6,Burst AR,Weapon,Uncommon,Burst-fire medium-range rifle,Medium,27,3.2,20,2.4
+7,Burst AR,Weapon,Rare,Burst-fire upgraded rifle,Medium,29,3.2,20,2.3
+8,Burst AR,Weapon,Legendary,Elite burst rifle,Medium,31,3.2,20,2.1
+9,Tactical Shotgun,Weapon,Common,Close-range shotgun,Shells,75,1.2,8,4.3
+10,Tactical Shotgun,Weapon,Uncommon,Improved tactical shotgun,Shells,80,1.2,8,4.2
+11,Tactical Shotgun,Weapon,Rare,High-quality tactical shotgun,Shells,85,1.2,8,4.1
+12,Tactical Shotgun,Weapon,Epic,Elite tactical shotgun,Shells,90,1.2,8,4.0
+13,Tactical Shotgun,Weapon,Legendary,Deadly tactical shotgun,Shells,95,1.2,8,3.9
+14,Combat Shotgun,Weapon,Rare,Fast-firing shotgun,Shells,85,1.7,8,4.0
+15,Combat Shotgun,Weapon,Epic,Advanced combat shotgun,Shells,90,1.7,8,3.9
+16,Combat Shotgun,Weapon,Legendary,Elite combat shotgun,Shells,95,1.7,8,3.8
+17,SMG,Weapon,Common,Fully-automatic close-range SMG,Light,17,12.0,30,2.0
+18,SMG,Weapon,Uncommon,Improved SMG,Light,18,12.0,30,1.9
+19,SMG,Weapon,Rare,High-quality SMG,Light,19,12.0,30,1.8
+20,SMG,Weapon,Epic,Elite SMG,Light,20,12.0,30,1.7
+21,SMG,Weapon,Legendary,Top-tier SMG,Light,21,12.0,30,1.6
+22,Suppressed SMG,Weapon,Rare,Silenced rapid-fire SMG,Light,18,11.0,30,1.9
+23,Suppressed SMG,Weapon,Epic,Advanced suppressed SMG,Light,20,11.0,30,1.8
+24,DMR,Weapon,Rare,Long-range precision rifle,Medium,45,2.1,10,2.7
+25,DMR,Weapon,Epic,Advanced DMR,Medium,48,2.1,10,2.6
+26,DMR,Weapon,Legendary,Elite DMR,Medium,50,2.1,10,2.4
+27,Bolt-Action Sniper,Weapon,Rare,Single-shot sniper rifle,Heavy,105,0.8,1,3.0
+28,Bolt-Action Sniper,Weapon,Epic,High-power sniper rifle,Heavy,110,0.8,1,2.8
+29,Bolt-Action Sniper,Weapon,Legendary,Elite sniper rifle,Heavy,116,0.8,1,2.7
+30,Heavy Sniper,Weapon,Epic,High-damage sniper,Heavy,120,0.5,1,4.0
+31,Heavy Sniper,Weapon,Legendary,Devastating heavy sniper,Heavy,132,0.5,1,3.8
+32,Rocket Launcher,Weapon,Epic,Explosive launcher with high damage,Rockets,120,0.4,1,4.7
+33,Rocket Launcher,Weapon,Legendary,Elite high-damage launcher,Rockets,130,0.4,1,4.5
+34,Hand Cannon,Weapon,Rare,High-damage pistol,Heavy,75,1.0,7,2.5
+35,Hand Cannon,Weapon,Epic,Improved hand cannon,Heavy,80,1.0,7,2.3
+36,Hand Cannon,Weapon,Legendary,Elite hand cannon,Heavy,85,1.0,7,2.1
+37,Mythic AR,Weapon,Mythic,Special Mythic AR,Medium,38,5.7,30,1.7
+38,Mythic Shotgun,Weapon,Mythic,High-damage Mythic shotgun,Shells,100,1.3,6,3.8
+39,Exotic SMG,Weapon,Exotic,Unique exotic SMG,Light,23,13.0,30,1.5
+40,Exotic Sniper,Weapon,Exotic,Exotic precision sniper,Heavy,135,0.7,1,3.2
+41,Medkit,Consumable,Common,Restores 100 HP,None,,,,
+42,Bandages,Consumable,Common,Restores partial HP,None,,,,
+43,Mini Shield,Consumable,Uncommon,Restores 25 shield,None,,,,
+44,Shield Potion,Consumable,Rare,Restores 50 shield,None,,,,
+45,Slurp Juice,Consumable,Legendary,Regenerates health and shield,None,,,,
+46,Grenade,Throwable,Common,Standard grenade,None,100,1.0,1,0.0
+47,Shockwave Grenade,Throwable,Epic,Knockback explosive,None,0,1.0,1,0.0
+48,Firefly Jar,Throwable,Rare,Ignites structures,None,40,1.0,1,0.0
+49,Light Ammo,Ammo,Common,Ammo for SMGs,None,,,,
+50,Medium Ammo,Ammo,Common,Ammo for ARs,None,,,,
+51,Heavy Ammo,Ammo,Common,Ammo for snipers,None,,,,
+52,Shells,Ammo,Common,Ammo for shotguns,None,,,,
+53,Rockets,Ammo,Common,Ammo for launchers,None,,,,
+54,Port-a-Bunker,Utility,Rare,Deploys instant cover,None,,,,
+55,Launch Pad,Utility,Epic,Deploys a jump pad,None,,,,
+56,Grappler,Utility,Epic,Movement utility,None,,,,
+57,Chug Splash,Consumable,Rare,Heals allies,None,,,,
