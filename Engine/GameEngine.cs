@@ -64,7 +64,7 @@ public class GameEngine
         var rarityCounter = new Dictionary<string, long>();
         var weaponCounter = new Dictionary<string, long>();
         long totalLootRolls = 0;
-        int stepsPerRun = 0;
+        long totalSteps = 0;
 
         foreach (var r in _itemDb.GetRarities())   rarityCounter[r] = 0;
         foreach (var c in _itemDb.GetWeaponCategories()) weaponCounter[c] = 0;
@@ -72,7 +72,7 @@ public class GameEngine
         for (int i = 0; i < runs; i++)
         {
             var (steps, rolls) = RunSingleGame();
-            stepsPerRun = steps;
+            totalSteps += steps;
             totalLootRolls += rolls;
 
             for (int j = 0; j < rolls; j++)
@@ -83,14 +83,15 @@ public class GameEngine
                 if (rarityCounter.ContainsKey(item.Rarity))
                     rarityCounter[item.Rarity]++;
 
-                var cat = ItemDatabase.GetWeaponCategory(item.WeaponType);
+                var cat = ItemDatabase.GetWeaponCategory(item.AmmoType);
                 if (cat != null && weaponCounter.ContainsKey(cat))
                     weaponCounter[cat]++;
             }
         }
 
+        int avgStepsPerRun = runs > 0 ? (int)(totalSteps / runs) : 0;
         return new SimulationResult(
-            runs, stepsPerRun, totalLootRolls,
+            runs, avgStepsPerRun, totalLootRolls,
             ConvertDistribution(rarityCounter, totalLootRolls),
             ConvertDistribution(weaponCounter, totalLootRolls));
     }
