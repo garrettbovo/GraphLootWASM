@@ -1,0 +1,53 @@
+@if (Data is null || Data.Count == 0)
+{
+    <div class="empty-chart">No data.</div>
+}
+else
+{
+    <div class="pie-container">
+        <svg viewBox="0 0 200 200" class="pie-svg">
+            @{
+                double cumulativeAngle = -90;
+                int colorIndex = 0;
+            }
+            @foreach (var kvp in Data.OrderByDescending(x => x.Value.Percentage))
+            {
+                var percentage = kvp.Value.Percentage;
+                var angle = (percentage / 100) * 360;
+                var startAngle = cumulativeAngle * Math.PI / 180;
+                var endAngle = (cumulativeAngle + angle) * Math.PI / 180;
+
+                var x1 = 100 + 90 * Math.Cos(startAngle);
+                var y1 = 100 + 90 * Math.Sin(startAngle);
+                var x2 = 100 + 90 * Math.Cos(endAngle);
+                var y2 = 100 + 90 * Math.Sin(endAngle);
+
+                var largeArc = angle > 180 ? 1 : 0;
+                var pathData = $"M 100 100 L {x1:F1} {y1:F1} A 90 90 0 {largeArc} 1 {x2:F1} {y2:F1} Z";
+
+                <path d="@pathData" class="@($"pie-slice pie-slice-{colorIndex % 8}")" />
+
+                cumulativeAngle += angle;
+                colorIndex++;
+            }
+        </svg>
+        <div class="pie-legend">
+            @{
+                colorIndex = 0;
+            }
+            @foreach (var kvp in Data.OrderByDescending(x => x.Value.Percentage))
+            {
+                <div class="legend-item">
+                    <span class="@($"legend-color legend-color-{colorIndex % 8}")"></span>
+                    <span class="legend-label">@kvp.Key</span>
+                    <span class="legend-value">@kvp.Value.Percentage.ToString("0.00")%</span>
+                </div>
+                colorIndex++;
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Dictionary<string, (double Percentage, long Count)>? Data { get; set; }
+}

@@ -100,59 +100,7 @@ public class Graph
 
     public PathResult RunAStar(string start, string end)
     {
-        if (!_adjList.ContainsKey(start) || !_adjList.ContainsKey(end))
-            return new PathResult(new List<string>(), 0, 0);
-
-        var gScore = new Dictionary<string, double>();
-        var fScore = new Dictionary<string, double>();
-        var predecessors = new Dictionary<string, string?>();
-        var pq = new PriorityQueue<(string, double), double>();
-
-        foreach (var v in _adjList.Keys)
-        {
-            gScore[v] = double.MaxValue;
-            fScore[v] = double.MaxValue;
-            predecessors[v] = null;
-        }
-
-        gScore[start] = 0;
-        fScore[start] = Heuristic(start, end);
-        pq.Enqueue((start, fScore[start]), fScore[start]);
-
-        while (pq.Count > 0)
-        {
-            var (current, _) = pq.Dequeue();
-
-            if (current == end)
-                break;
-
-            foreach (var edge in _adjList[current])
-            {
-                var tentative = gScore[current] + edge.Weight;
-                if (tentative < gScore[edge.To])
-                {
-                    predecessors[edge.To] = current;
-                    gScore[edge.To] = tentative;
-                    fScore[edge.To] = gScore[edge.To] + Heuristic(edge.To, end);
-                    pq.Enqueue((edge.To, fScore[edge.To]), fScore[edge.To]);
-                }
-            }
-        }
-
-        var path = ReconstructPath(start, end, predecessors);
-        return new PathResult(path, gScore[end], path.Count - 1);
-    }
-
-    private double Heuristic(string from, string to)
-    {
-        if (!_nodes.ContainsKey(from) || !_nodes.ContainsKey(to))
-            return 0;
-
-        var n1 = _nodes[from];
-        var n2 = _nodes[to];
-        var dx = n1.X - n2.X;
-        var dy = n1.Y - n2.Y;
-        return Math.Sqrt(dx * dx + dy * dy);
+        return RunDijkstra(start, end);
     }
 
     private List<string> ReconstructPath(string start, string end, Dictionary<string, string?> predecessors)

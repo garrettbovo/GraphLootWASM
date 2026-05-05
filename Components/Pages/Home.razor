@@ -6,32 +6,35 @@
 <PageTitle>GraphLoot Engine - Interactive Visualization</PageTitle>
 
 <div class="grid">
-    <!-- Left: interactive graph -->
     <section class="panel graph-panel">
         <h2>World Graph</h2>
-        <p class="hint">
-            @if (_start is null) { <span>Click a node to set <b>start</b>.</span> }
-            else if (_end is null) { <span>Start: <b>@_start</b>. Click another node to set <b>end</b>.</span> }
-            else { <span>Start: <b>@_start</b> &rarr; End: <b>@_end</b>. Run to compute path.</span> }
-        </p>
+        <p class="hint">@GetHintText()</p>
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="error">@_error</div>
+        }
 
         @if (_graph is null || _graph.Nodes.Count == 0)
         {
             <div class="empty">
                 <p>Loading graph data...</p>
-                @if (_error is not null)
-                {
-                    <p style="color: #f85149;">Error: @_error</p>
-                }
             </div>
         }
         else
         {
             <svg viewBox="@_viewBox" class="graph-svg" preserveAspectRatio="xMidYMid meet">
                 <defs>
+                    <linearGradient id="edgeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#0284c7;stop-opacity:1" />
+                    </linearGradient>
                     <filter id="edge-glow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="3" result="blur"/>
-                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feMerge>
+                            <feMergeNode in="blur" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
                     </filter>
                 </defs>
 
@@ -39,31 +42,36 @@
                     var edges = GetUniqueEdges();
                 }
 
-                @* Non-path edges *@
-                @foreach (var e in edges.Where(e => !e.IsOnPath))
+                @* All edges rendered as gray lines *@
+                @foreach (var edge in edges.Where(e => !e.IsOnPath))
                 {
-                    <line x1="@F(e.A.X)" y1="@F(e.A.Y)" x2="@F(e.B.X)" y2="@F(e.B.Y)" class="edge" stroke-width="1.5" />
-                    <g><text x="@F((e.A.X + e.B.X) / 2)" y="@F((e.A.Y + e.B.Y) / 2 - 5)" class="edge-label">@e.Weight.ToString("0.#")</text></g>
+                    <line x1="@FormatNumber(edge.A.X)"
+                          y1="@FormatNumber(edge.A.Y)"
+                          x2="@FormatNumber(edge.B.X)"
+                          y2="@FormatNumber(edge.B.Y)"
+                          class="edge"
+                          stroke-width="1.5" />
+
+                    <g>
+                        <text x="@FormatNumber((edge.A.X + edge.B.X) / 2)"
+                              y="@FormatNumber((edge.A.Y + edge.B.Y) / 2 - 5)"
+                              class="edge-label">@edge.Weight.ToString("0.#")</text>
+                    </g>
                 }
 
-                @* Path edges rendered on top with glow *@
-                @foreach (var e in edges.Where(e => e.IsOnPath))
+                @* Path edges *@
+                @foreach (var (fromNode, toNode) in GetPathEdges())
                 {
-                    <line x1="@F(e.A.X)" y1="@F(e.A.Y)" x2="@F(e.B.X)" y2="@F(e.B.Y)"
-                          class="edge edge-path" stroke-width="4" filter="url(#edge-glow)" />
+                    <line x1="@FormatNumber(fromNode.X)" y1="@FormatNumber(fromNode.Y)"
+                          x2="@FormatNumber(toNode.X)" y2="@FormatNumber(toNode.Y)"
+                          stroke="#06b6d4" stroke-width="4" filter="url(#edge-glow)" />
                 }
 
-                @* Nodes *@
-                @foreach (var n in _graph.Nodes.Values)
+                @foreach (var node in _graph.Nodes.Values)
                 {
-                    var cls = "node";
-                    if (n.Name == _start) cls += " node-start";
-                    else if (n.Name == _end) cls += " node-end";
-                    else if (_pathNodeSet.Contains(n.Name)) cls += " node-path";
-
-                    <g class="@cls" @onclick="() => OnNodeClick(n.Name)" role="button" tabindex="0">
-                        <circle cx="@F(n.X)" cy="@F(n.Y)" r="14" />
-                        <text x="@F(n.X)" y="@F(n.Y + 28)" class="node-label">@n.Name</text>
+                    <g class="@GetNodeClass(node.Name)" @onclick="() => OnNodeClick(node.Name)" role="button" tabindex="0">
+                        <circle cx="@FormatNumber(node.X)" cy="@FormatNumber(node.Y)" r="14" />
+                        <text x="@FormatNumber(node.X)" y="@FormatNumber(node.Y + 28)" class="node-label">@node.Name</text>
                     </g>
                 }
             </svg>
@@ -76,7 +84,6 @@
         }
     </section>
 
-    <!-- Right: controls + results -->
     <section class="panel controls-panel">
         <h2>Run</h2>
 
@@ -95,45 +102,39 @@
             </label>
 
             <div class="button-row">
-                <button @onclick="RunPathfindingAsync"
-                        disabled="@(_busy || _start is null || _end is null)">
-                    Compute Path
-                </button>
-
-                <button @onclick="RunSimulationAsync" disabled="@_busy">
-                    Run Simulation (×@_runs)
-                </button>
-
+                <button @onclick="RunPathfinding" disabled="@(_busy || _start is null || _end is null)">Compute Path</button>
+                <button @onclick="RunSimulationAsync" disabled="@_busy">Run Simulation (x@_runs)</button>
                 <button @onclick="ClearSelection" disabled="@_busy">Clear</button>
             </div>
 
-            @if (_busy) { <div class="status">Running...</div> }
-            @if (_error is not null) { <div class="error">@_error</div> }
+            @if (_busy)
+            {
+                <div class="status">Running...</div>
+            }
         </div>
 
         @if (_traversal is not null)
         {
             <h3>Path Result</h3>
+
             @if (_traversal.Path.Count == 0)
             {
                 <div class="error">No path found between the selected nodes.</div>
             }
             else
             {
-            <div class="path-line">
-                @string.Join(" → ", _traversal.Path)
-            </div>
+                <div class="path-line">@string.Join(" -> ", _traversal.Path)</div>
 
-            @if (_traversal.Steps.Count > 0)
-            {
-                <h4>Steps</h4>
-                <ol class="steps">
-                    @foreach (var s in _traversal.Steps)
-                    {
-                        <li>@s.From → @s.To ✔</li>
-                    }
-                </ol>
-            }
+                @if (_traversal.Steps.Count > 0)
+                {
+                    <h4>Steps</h4>
+                    <ol class="steps">
+                        @foreach (var step in _traversal.Steps)
+                        {
+                            <li>@step.From -> @step.To</li>
+                        }
+                    </ol>
+                }
             }
         }
 
@@ -141,15 +142,14 @@
         {
             <h3>Simulation Results</h3>
             <div class="sim-meta">
-                @_simulation.Runs runs &middot; @_simulation.StepsPerRun steps/run &middot;
-                @_simulation.TotalLootRolls.ToString("N0") loot rolls
+                @_simulation.Runs runs · @_simulation.StepsPerRun steps/run · @_simulation.TotalLootRolls.ToString("N0") loot rolls
             </div>
 
             <h4>Rarity Distribution</h4>
-            <BarChart Data="_simulation.RarityDistribution" />
+            <BarChart Data="@_simulation.RarityDistribution" />
 
             <h4>Weapon Type Distribution</h4>
-            <BarChart Data="_simulation.WeaponDistribution" />
+            <BarChart Data="@_simulation.WeaponDistribution" />
         }
     </section>
 </div>
@@ -158,26 +158,21 @@
     private Graph? _graph;
     private Dictionary<string, NodeData> _nodeByName = new();
     private string _viewBox = "0 0 1000 1000";
-
     private string? _start;
     private string? _end;
     private string _algorithm = "dijkstra";
     private int _runs = 1000;
-
     private bool _busy;
     private string? _error;
-
     private TraversalOutput? _traversal;
     private SimulationResult? _simulation;
-
-    private HashSet<string> _pathNodeSet = new();
-    private HashSet<string> _pathEdgeSet = new();
+    private readonly HashSet<string> _pathNodeSet = new();
+    private readonly HashSet<string> _pathEdgeSet = new();
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // Load CSVs from wwwroot
             var nodesCsv = await Http.GetStringAsync("data/Nodes.csv");
             var mapCsv = await Http.GetStringAsync("data/DefaultMap.csv");
             var itemsCsv = await Http.GetStringAsync("data/Items.csv");
@@ -186,7 +181,7 @@
             Engine.LoadItems(itemsCsv);
 
             _graph = Engine.GetGraph();
-            _nodeByName = new Dictionary<string, NodeData>(_graph.Nodes.Values.ToDictionary(n => n.Name));
+            _nodeByName = _graph.Nodes.Values.ToDictionary(node => node.Name);
             _viewBox = ComputeViewBox(_graph);
         }
         catch (Exception ex)
@@ -196,37 +191,70 @@
         }
     }
 
+    private string GetHintText()
+    {
+        if (_start is null)
+            return "Click a node to set start.";
+
+        if (_end is null)
+            return $"Start: {_start}. Click another node to set end.";
+
+        return $"Start: {_start} -> End: {_end}. Run to compute path.";
+    }
+
+    private string GetNodeClass(string nodeName)
+    {
+        var cssClass = "node";
+
+        if (nodeName == _start)
+            return $"{cssClass} node-start";
+
+        if (nodeName == _end)
+            return $"{cssClass} node-end";
+
+        if (_pathNodeSet.Contains(nodeName))
+            return $"{cssClass} node-path";
+
+        return cssClass;
+    }
+
     private void OnNodeClick(string name)
     {
-        if (_start is null) { _start = name; return; }
-        if (_end is null && name != _start) { _end = name; return; }
+        if (_start is null)
+        {
+            _start = name;
+            return;
+        }
+
+        if (_end is null && name != _start)
+        {
+            _end = name;
+            return;
+        }
+
         _start = name;
         _end = null;
-        _pathNodeSet.Clear();
-        _pathEdgeSet.Clear();
-        _traversal = null;
+        ResetPathState();
     }
 
     private void ClearSelection()
     {
         _start = null;
         _end = null;
-        _traversal = null;
         _simulation = null;
         _error = null;
-        _pathNodeSet.Clear();
-        _pathEdgeSet.Clear();
+        ResetPathState();
     }
 
-    private async Task RunPathfindingAsync()
+    private void RunPathfinding()
     {
-        if (_start is null || _end is null) return;
+        if (_start is null || _end is null)
+            return;
+
         _busy = true;
         _error = null;
         _simulation = null;
-        _traversal = null;
-        _pathNodeSet.Clear();
-        _pathEdgeSet.Clear();
+        ResetPathState();
 
         try
         {
@@ -247,14 +275,12 @@
     {
         _busy = true;
         _error = null;
-        _traversal = null;
         _simulation = null;
-        _pathNodeSet.Clear();
-        _pathEdgeSet.Clear();
+        ResetPathState();
 
         try
         {
-            await Task.Run(() => _simulation = Engine.RunSimulation(_runs));
+            _simulation = await Task.Run(() => Engine.RunSimulation(_runs));
         }
         catch (Exception ex)
         {
@@ -266,48 +292,105 @@
         }
     }
 
-    private void HighlightPath(List<string> path)
+    private void ResetPathState()
     {
-        _pathNodeSet = new HashSet<string>(path);
-        _pathEdgeSet = new HashSet<string>();
-        for (int i = 0; i < path.Count - 1; i++)
-            _pathEdgeSet.Add(EdgeKey(path[i], path[i + 1]));
+        _traversal = null;
+        _pathNodeSet.Clear();
+        _pathEdgeSet.Clear();
     }
 
-    private static string EdgeKey(string a, string b) => $"{a}|{b}";
-
-    private List<(NodeData A, NodeData B, double Weight, bool IsOnPath)> GetUniqueEdges()
+    private void HighlightPath(List<string> path)
     {
-        var result = new List<(NodeData, NodeData, double, bool)>();
+        _pathNodeSet.Clear();
+        _pathEdgeSet.Clear();
+
+        foreach (var node in path)
+            _pathNodeSet.Add(node);
+
+        for (int i = 0; i < path.Count - 1; i++)
+            _pathEdgeSet.Add(CreateEdgeKey(path[i], path[i + 1]));
+    }
+
+    private List<GraphEdgeViewModel> GetUniqueEdges()
+    {
+        var result = new List<GraphEdgeViewModel>();
+
+        if (_graph is null)
+            return result;
+
         var drawn = new HashSet<string>();
-        foreach (var kvp in _graph!.AdjList)
+
+        foreach (var kvp in _graph.AdjList)
         {
             foreach (var edge in kvp.Value)
             {
-                var canon = string.Compare(kvp.Key, edge.To, StringComparison.Ordinal) < 0
-                    ? $"{kvp.Key}|{edge.To}" : $"{edge.To}|{kvp.Key}";
-                if (!drawn.Add(canon)) continue;
-                var a = _nodeByName.GetValueOrDefault(kvp.Key);
-                var b = _nodeByName.GetValueOrDefault(edge.To);
-                if (a is null || b is null) continue;
-                var isOnPath = _pathEdgeSet.Contains(EdgeKey(kvp.Key, edge.To))
-                            || _pathEdgeSet.Contains(EdgeKey(edge.To, kvp.Key));
-                result.Add((a, b, edge.Weight, isOnPath));
+                var canonicalKey = CreateCanonicalEdgeKey(kvp.Key, edge.To);
+                if (!drawn.Add(canonicalKey))
+                    continue;
+
+                if (!_nodeByName.TryGetValue(kvp.Key, out var fromNode))
+                    continue;
+
+                if (!_nodeByName.TryGetValue(edge.To, out var toNode))
+                    continue;
+
+                var isOnPath = _pathEdgeSet.Contains(CreateEdgeKey(kvp.Key, edge.To))
+                    || _pathEdgeSet.Contains(CreateEdgeKey(edge.To, kvp.Key));
+
+                result.Add(new GraphEdgeViewModel(fromNode, toNode, edge.Weight, isOnPath));
+            }
+        }
+
+        return result;
+    }
+
+    private static string CreateEdgeKey(string from, string to) => $"{from}|{to}";
+
+    private static string CreateCanonicalEdgeKey(string a, string b)
+    {
+        return string.Compare(a, b, StringComparison.Ordinal) < 0
+            ? $"{a}|{b}"
+            : $"{b}|{a}";
+    }
+
+    private static string FormatNumber(double value)
+    {
+        return value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static string ComputeViewBox(Graph graph)
+    {
+        if (graph.Nodes.Count == 0)
+            return "0 0 1000 1000";
+
+        var nodes = graph.Nodes.Values.ToList();
+        var minX = nodes.Min(node => node.X) - 80;
+        var minY = nodes.Min(node => node.Y) - 80;
+        var width = nodes.Max(node => node.X) - nodes.Min(node => node.X) + 160;
+        var height = nodes.Max(node => node.Y) - nodes.Min(node => node.Y) + 160;
+
+        return $"{FormatNumber(minX)} {FormatNumber(minY)} {FormatNumber(width)} {FormatNumber(height)}";
+    }
+
+    private List<(NodeData, NodeData)> GetPathEdges()
+    {
+        var result = new List<(NodeData, NodeData)>();
+        if (_traversal == null || _traversal.Path == null || _traversal.Path.Count < 2)
+            return result;
+
+        for (int i = 0; i < _traversal.Path.Count - 1; i++)
+        {
+            var fromName = _traversal.Path[i];
+            var toName = _traversal.Path[i + 1];
+
+            if (_nodeByName.TryGetValue(fromName, out var fromNode) &&
+                _nodeByName.TryGetValue(toName, out var toNode))
+            {
+                result.Add((fromNode, toNode));
             }
         }
         return result;
     }
 
-    private static string F(double v) => v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
-
-    private static string ComputeViewBox(Graph g)
-    {
-        if (g.Nodes.Count == 0) return "0 0 1000 1000";
-        var nodes = g.Nodes.Values.ToList();
-        var xs = nodes.Select(n => n.X).ToList();
-        var ys = nodes.Select(n => n.Y).ToList();
-        double minX = xs.Min() - 80, minY = ys.Min() - 80;
-        double w = xs.Max() - xs.Min() + 160, h = ys.Max() - ys.Min() + 160;
-        return $"{F(minX)} {F(minY)} {F(w)} {F(h)}";
-    }
+    private sealed record GraphEdgeViewModel(NodeData A, NodeData B, double Weight, bool IsOnPath);
 }
