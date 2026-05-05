@@ -1,102 +1,96 @@
 namespace GraphLootWASM.Engine;
 
 using System.Collections.Generic;
-using System.Linq;
 
 public class ItemDatabase
 {
-    private List<Weapon> _items = new();
-    private LootPool _lootPool = new();
+    private readonly List<(Weapon Item, double Weight)> _weaponPool = new();
+    private double _totalWeaponWeight = 0;
 
-    public List<Weapon> Items => _items;
-    public LootPool LootPool => _lootPool;
+    private static double GetRarityWeight(string rarity) => rarity switch
+    {
+        "Common"    => 40,
+        "Uncommon"  => 30,
+        "Rare"      => 15,
+        "Epic"      =>  8,
+        "Legendary" =>  4,
+        "Mythic"    =>  1,
+        "Exotic"    =>  1,
+        _ => 0
+    };
+
+    // Base weapon weight * ammo multiplier (matches C++ reference)
+    private static double GetAmmoWeight(string ammoType) => ammoType switch
+    {
+        "Light"   => 110,
+        "Medium"  => 100,
+        "Shells"  =>  90,
+        "Heavy"   =>  50,
+        "Rockets" =>  30,
+        _ => 0
+    };
+
+    // Maps ammo type to the 4 display categories; null = excluded from chart
+    public static string? GetWeaponCategory(string ammoType) => ammoType switch
+    {
+        "Medium" => "AR",
+        "Shells" => "Shotgun",
+        "Light"  => "SMG",
+        "Heavy"  => "Heavy",
+        _ => null
+    };
 
     public void LoadFromCSV(string csv)
     {
-        _items.Clear();
-        var lines = csv.Split('\n');
-        foreach (var line in lines)
+        _weaponPool.Clear();
+        _totalWeaponWeight = 0;
+
+        foreach (var line in csv.Split('\n'))
         {
             var trimmed = line.Trim();
             if (trimmed.Length == 0) continue;
 
             var parts = trimmed.Split(',');
-            if (parts.Length < 4) continue;
+            if (parts.Length < 6) continue;
 
-            var name = parts[0].Trim().Trim('"');
-            var rarity = parts[1].Trim().Trim('"');
-            var ammoType = parts[2].Trim().Trim('"');
-            if (double.TryParse(parts[3], out var damage))
-            {
-                var weapon = new Weapon(name, rarity, ammoType, damage);
-                _items.Add(weapon);
-            }
-        }
-        _lootPool.Initialize(_items);
-    }
-}
+            // CSV format: ID,Name,Type,Rarity,Description,AmmoType,Damage,...
+            var type = parts[2].Trim();
+            if (type != "Weapon") continue;
 
-public class LootPool
-{
-    private List<(Weapon Weapon, double Weight)> _weightedLootTable = new();
-    private double _totalWeight = 0;
+            var name     = parts[1].Trim();
+            var rarity   = parts[3].Trim();
+            var ammoType = parts[5].Trim();
 
-    private static readonly Dictionary<string, double> RarityWeights = new()
-    {
-        { "Common", 40 },
-        { "Uncommon", 30 },
-        { "Rare", 15 },
-        { "Epic", 8 },
-        { "Legendary", 4 }
-    };
+            double damage = 0;
+            if (parts.Length > 6) double.TryParse(parts[6].Trim(),
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out damage);
 
-    private static readonly Dictionary<string, double> AmmoWeights = new()
-    {
-        { "Light", 1.1 },
-        { "Medium", 1.0 },
-        { "Heavy", 0.5 },
-        { "Shells", 0.9 },
-        { "Rockets", 0.3 }
-    };
+            var weight = GetRarityWeight(rarity) * GetAmmoWeight(ammoType);
+            if (weight <= 0) continue;
 
-    private const double Weapons = 100.0;
-
-    public void Initialize(List<Weapon> items)
-    {
-        _weightedLootTable.Clear();
-        _totalWeight = 0;
-
-        foreach (var weapon in items)
-        {
-            double rarityWeight = RarityWeights.GetValueOrDefault(weapon.Rarity, 1);
-            double ammoWeight = AmmoWeights.GetValueOrDefault(weapon.AmmoType, 1.0);
-            double categoryWeight = Weapons * ammoWeight;
-            double finalWeight = rarityWeight * categoryWeight;
-
-            _weightedLootTable.Add((weapon, finalWeight));
-            _totalWeight += finalWeight;
+            _weaponPool.Add((new Weapon(name, rarity, ammoType, damage), weight));
+            _totalWeaponWeight += weight;
         }
     }
 
-    public Weapon RollLoot(Random rng)
+    public Weapon? RollWeapon(Random rng)
     {
-        if (_weightedLootTable.Count == 0)
-            return new Weapon("Empty", "Common", "Medium", 0);
+        if (_weaponPool.Count == 0) return null;
 
-        double roll;
-        do
+        var roll = rng.NextDouble() * _totalWeaponWeight;
+        double accumulated = 0;
+        foreach (var (item, weight) in _weaponPool)
         {
-            roll = rng.NextDouble() * _totalWeight;
-        } while (roll == 0.0);
-
-        double cumulative = 0;
-        foreach (var (weapon, weight) in _weightedLootTable)
-        {
-            cumulative += weight;
-            if (roll <= cumulative)
-                return weapon;
+            accumulated += weight;
+            if (roll <= accumulated) return item;
         }
-
-        return _weightedLootTable[_weightedLootTable.Count - 1].Weapon;
+        return _weaponPool[^1].Item;
     }
+
+    public IEnumerable<string> GetRarities() =>
+        new[] { "Common", "Uncommon", "Rare", "Epic", "Legendary" };
+
+    public IEnumerable<string> GetWeaponCategories() =>
+        new[] { "AR", "Shotgun", "SMG", "Heavy" };
 }
