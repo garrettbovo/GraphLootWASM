@@ -28,10 +28,10 @@ jobs:
         dotnet-version: '10.0.x'
 
     - name: Restore
-      run: dotnet restore
+      run: dotnet restore GraphLootWASM.sln
 
     - name: Publish
-      run: dotnet publish -c Release -o dist
+      run: dotnet publish GraphLootWASM.sln -c Release -o dist
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
