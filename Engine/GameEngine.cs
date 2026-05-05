@@ -51,6 +51,9 @@ public class GameEngine
             if (double.TryParse(parts[2], System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out var weight))
             {
+                // Ensure nodes exist in graph with default coordinates if not already loaded
+                _graph.AddVertex(from);
+                _graph.AddVertex(to);
                 _graph.AddEdge(from, to, weight);
                 _graph.AddEdge(to, from, weight);
             }
@@ -89,7 +92,7 @@ public class GameEngine
             }
         }
 
-        int avgStepsPerRun = runs > 0 ? (int)(totalSteps / runs) : 0;
+        double avgStepsPerRun = runs > 0 ? (double)totalSteps / runs : 0;
         return new SimulationResult(
             runs, avgStepsPerRun, totalLootRolls,
             ConvertDistribution(rarityCounter, totalLootRolls),
@@ -143,7 +146,7 @@ public record TraversalOutput(List<string> Path, List<(string From, string To)> 
 
 public record SimulationResult(
     int Runs,
-    int StepsPerRun,
+    double StepsPerRun,
     long TotalLootRolls,
     Dictionary<string, (double Percentage, long Count)> RarityDistribution,
     Dictionary<string, (double Percentage, long Count)> WeaponDistribution);
