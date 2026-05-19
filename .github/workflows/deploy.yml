@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,23 +27,27 @@ jobs:
     - name: Publish
       run: dotnet publish GraphLootWASM.sln -c Release -o dist
 
-    - name: Checkout Graph Loot Engine
-      uses: actions/checkout@v4
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
       with:
-        repository: garrettbovo/GraphLoot-Engine
-        token: ${{ secrets.DEPLOY_TOKEN }}
-        path: engine-repo
+        name: wasm-build
+        path: dist/wwwroot
 
-    - name: Copy build to Graph Loot Engine
-      run: |
-        rm -rf engine-repo/graph-loot-wasm
-        cp -r dist/wwwroot engine-repo/graph-loot-wasm
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
 
-    - name: Commit and push changes
-      working-directory: engine-repo
-      run: |
-        git config user.name "GitHub Actions"
-        git config user.email "actions@github.com"
-        git add graph-loot-wasm
-        git commit -m "Update WASM build from GraphLootWASM" || echo "No changes to commit"
-        git push
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: wasm-build
+        path: build
+
+    - name: Deploy to Graph Loot Engine gh-pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        personal_token: ${{ secrets.DEPLOY_TOKEN }}
+        external_repository: garrettbovo/GraphLoot-Engine
+        publish_branch: gh-pages
+        publish_dir: ./build
