@@ -46,3 +46,4 @@ Thumbs.db
 # Build output
 dist/
 publish/
+Test commit to trigger workflow
