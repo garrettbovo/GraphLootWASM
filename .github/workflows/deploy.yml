@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy to Graph Loot Engine
 
 on:
   push:
@@ -7,19 +7,13 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout
+    - name: Checkout GraphLootWASM
       uses: actions/checkout@v4
 
     - name: Setup .NET
@@ -33,20 +27,23 @@ jobs:
     - name: Publish
       run: dotnet publish GraphLootWASM.sln -c Release -o dist
 
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
+    - name: Checkout Graph Loot Engine
+      uses: actions/checkout@v4
       with:
-        path: 'dist/wwwroot'
+        repository: garrettbovo/GraphLoot-Engine
+        token: ${{ secrets.DEPLOY_TOKEN }}
+        path: engine-repo
 
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
-    runs-on: ubuntu-latest
-    needs: build
-    
-    steps:
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
+    - name: Copy build to Graph Loot Engine
+      run: |
+        rm -rf engine-repo/graph-loot-wasm
+        cp -r dist/wwwroot engine-repo/graph-loot-wasm
+
+    - name: Commit and push changes
+      working-directory: engine-repo
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git add graph-loot-wasm
+        git commit -m "Update WASM build from GraphLootWASM" || echo "No changes to commit"
+        git push
